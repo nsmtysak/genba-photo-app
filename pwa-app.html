@@ -118,27 +118,6 @@
   details { margin-top: 8px; }
   summary { cursor: pointer; font-size: 13px; color: var(--primary); }
   .spacer { height: 8px; }
-
-  /* ライブカメラ（連続撮影）オーバーレイ */
-  .cam-overlay { position: fixed; inset: 0; background: #000; z-index: 200; display: flex; flex-direction: column; }
-  #camVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .cam-top { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center;
-    padding: calc(env(safe-area-inset-top) + 10px) 14px 10px; }
-  .cam-project { color: #fff; background: rgba(0,0,0,.5); padding: 7px 14px; border-radius: 999px; font-weight: 600;
-    font-size: 14px; max-width: 62%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cam-close { background: rgba(0,0,0,.55); color: #fff; border-radius: 999px; padding: 9px 16px; font-size: 15px; }
-  .cam-bottom { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; display: flex; align-items: center;
-    justify-content: space-between; padding: 0 24px calc(env(safe-area-inset-bottom) + 28px); }
-  .cam-gps { color: #fff; font-size: 13px; background: rgba(0,0,0,.5); padding: 7px 12px; border-radius: 999px;
-    min-width: 92px; text-align: center; }
-  .cam-gps.ng { background: rgba(198,40,40,.75); }
-  .cam-count { color: #fff; font-size: 14px; font-weight: 700; background: rgba(0,0,0,.5); padding: 7px 12px;
-    border-radius: 999px; min-width: 64px; text-align: center; }
-  .cam-shutter { width: 78px; height: 78px; border-radius: 50%; background: #fff;
-    border: 5px solid rgba(255,255,255,.45); box-shadow: 0 0 0 3px rgba(0,0,0,.35); }
-  .cam-shutter:active { transform: scale(.92); }
-  .cam-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 3; }
-  .cam-flash.on { opacity: .85; }
 </style>
 </head>
 <body>
@@ -170,16 +149,16 @@
   <section class="card">
     <h2>撮影</h2>
     <button class="capture-btn" id="captureBtn">
-      <span class="ico">📸</span>
-      <span>撮影する</span>
+      <span class="ico">📷</span>
+      <span>標準カメラで撮影（1枚）</span>
     </button>
-    <!-- ネイティブカメラを開く input -->
+    <!-- 標準カメラを開く input（1枚） -->
     <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
-    <button class="btn-ghost" id="galleryBtn" style="width:100%;margin-top:10px;">🖼 アルバムから取り込み（未案件）</button>
+    <button class="btn-ghost" id="galleryBtn" style="width:100%;margin-top:10px;">🖼 アルバムからまとめて取り込み</button>
     <!-- アルバム（複数選択）。capture無し -->
     <input type="file" id="galleryInput" accept="image/*" multiple style="display:none">
     <div class="gps-line" id="gpsLine"><span>📍</span><span id="gpsText">位置情報：撮影時に取得します</span></div>
-    <div class="hint">「撮影する」＝この案件として保存（GPSは撮影時に取得）。<br>「アルバムから取り込み」＝普通のカメラで撮った写真を取り込み、<b>未案件</b>として保存（GPSは写真の情報から読み取り）。いずれもオフラインOK・帰社後にまとめて転送します。</div>
+    <div class="hint"><b>たくさん撮るとき：</b>いつもの標準カメラアプリで自由に（連写でも）撮影し、「アルバムからまとめて取り込み」で一括取り込み（GPS・日時は写真から自動読み取り）。<br><b>1枚だけ：</b>「標準カメラで撮影（1枚）」。<br>取り込み・撮影とも、上で選択中の<b>案件</b>に保存されます（未案件にしたい場合は案件欄で「未案件にする」）。オフラインOK・帰社後にまとめて転送します。</div>
   </section>
 
   <!-- 送信キュー -->
@@ -220,22 +199,6 @@
 
   <div class="hint" style="text-align:center;opacity:.7">現場写真 自動仕分けアプリ / フェーズ2 PWA</div>
 </main>
-
-<!-- ライブカメラ（連続撮影） -->
-<div class="cam-overlay" id="cameraOverlay" style="display:none">
-  <video id="camVideo" playsinline autoplay muted></video>
-  <div class="cam-top">
-    <span class="cam-project" id="camProject"></span>
-    <button class="cam-close" id="camClose">✕ 閉じる</button>
-  </div>
-  <div class="cam-bottom">
-    <div class="cam-gps" id="camGps">📍 取得中…</div>
-    <button class="cam-shutter" id="camShutter" aria-label="撮影"></button>
-    <div class="cam-count" id="camCount">0枚</div>
-  </div>
-  <div class="cam-flash" id="camFlash"></div>
-</div>
-<canvas id="camCanvas" style="display:none"></canvas>
 
 <div class="toast" id="toast"></div>
 
@@ -428,93 +391,13 @@ async function enqueuePhoto(blob, { project, source, gps, mime, filename, captur
   return id;
 }
 
-/* --- ライブカメラ（連続撮影） --- */
-let camStream = null, camWatchId = null, lastPos = null, camCount = 0;
+/* --- 撮影する: 標準カメラで1枚撮影（現在の案件に保存） --- */
+$("captureBtn").addEventListener("click", () => {
+  $("gpsText").textContent = "標準カメラを起動します…";
+  $("gpsLine").className = "gps-line";
+  $("cameraInput").click();
+});
 
-function updateCamGps(pos) {
-  const el = $("camGps");
-  if (pos) { el.className = "cam-gps"; el.textContent = `📍 ±${pos.accuracy_m ?? "?"}m`; }
-  else { el.className = "cam-gps ng"; el.textContent = "📍 GPS待ち"; }
-}
-function startGpsWatch() {
-  lastPos = null; updateCamGps(null);
-  if (!("geolocation" in navigator)) return;
-  camWatchId = navigator.geolocation.watchPosition(
-    (p) => {
-      lastPos = {
-        lat: p.coords.latitude, lng: p.coords.longitude,
-        accuracy_m: p.coords.accuracy != null ? Math.round(p.coords.accuracy * 10) / 10 : null,
-        captured_at: localISO(new Date(p.timestamp))
-      };
-      updateCamGps(lastPos);
-    },
-    () => updateCamGps(null),
-    { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
-  );
-}
-function flashCam() {
-  const f = $("camFlash"); f.classList.add("on");
-  setTimeout(() => f.classList.remove("on"), 90);
-}
-async function openCamera() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    toast("このブラウザはライブカメラ非対応。単写モードで撮影します", 3500);
-    $("cameraInput").click(); return;
-  }
-  try {
-    camStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-      audio: false
-    });
-  } catch (err) {
-    toast("カメラを起動できません。単写モードで撮影します", 3500);
-    $("cameraInput").click(); return;
-  }
-  const v = $("camVideo");
-  v.srcObject = camStream;
-  try { await v.play(); } catch (e) { /* 自動再生制約は無視 */ }
-  camCount = 0; $("camCount").textContent = "0枚";
-  const p = getActiveProject();
-  $("camProject").textContent = p ? "案件: " + p : "未案件";
-  $("cameraOverlay").style.display = "flex";
-  startGpsWatch();
-}
-function closeCamera() {
-  if (camStream) { camStream.getTracks().forEach((t) => t.stop()); camStream = null; }
-  if (camWatchId != null && navigator.geolocation) { navigator.geolocation.clearWatch(camWatchId); camWatchId = null; }
-  $("camVideo").srcObject = null;
-  $("cameraOverlay").style.display = "none";
-  if (camCount > 0) toast(`${camCount}枚を保存しました`);
-  renderQueue();
-}
-let capturing = false;
-async function captureFrame() {
-  if (capturing) return;            // 連打の二重取得を防止
-  const v = $("camVideo");
-  if (!v.videoWidth) { toast("カメラ準備中です…"); return; }
-  capturing = true;
-  try {
-    const c = $("camCanvas");
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
-    const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.9));
-    if (!blob) { toast("撮影に失敗しました"); return; }
-    flashCam();
-    const gps = lastPos ? { ...lastPos, available: true } : { available: false };
-    await enqueuePhoto(blob, { project: getActiveProject(), source: "app", gps, mime: "image/jpeg" });
-    camCount++; $("camCount").textContent = camCount + "枚";
-  } catch (err) {
-    toast("保存に失敗: " + err.message, 3500);
-  } finally {
-    capturing = false;
-  }
-}
-
-$("captureBtn").addEventListener("click", openCamera);
-$("camShutter").addEventListener("click", captureFrame);
-$("camClose").addEventListener("click", closeCamera);
-
-/* --- 単写フォールバック（ライブカメラ非対応端末用） --- */
 $("cameraInput").addEventListener("change", async (e) => {
   const file = e.target.files && e.target.files[0];
   e.target.value = "";
@@ -621,9 +504,11 @@ function parseExifDate(s) {
   return isNaN(d.getTime()) ? null : d;
 }
 
-// 選択した写真群を未案件(native)として取り込む
+// 選択した写真群を取り込む。保存先の案件は現在選択中の案件（未選択なら未案件）。
+// 標準カメラで撮った写真なので source は "native"、GPS・日時は写真のEXIFから読む。
 async function importFiles(files) {
-  if (!files.length) return { added: 0, withGps: 0 };
+  const project = getActiveProject();
+  if (!files.length) return { added: 0, withGps: 0, project };
   let added = 0, withGps = 0;
   for (const file of files) {
     let captured = localISO(new Date(file.lastModified || Date.now()));
@@ -635,19 +520,14 @@ async function importFiles(files) {
         if (ex.gps) { gpsObj = { lat: ex.gps.lat, lng: ex.gps.lng, accuracy_m: null, captured_at: captured, available: true }; withGps++; }
       }
     } catch (e) { /* 解析失敗→GPSなし扱い */ }
-    const id = uuid();
-    const meta = {
-      schema_version: SCHEMA_VERSION, photo_id: id, project_name: null, captured_at: captured,
-      source: "native", gps: gpsObj, device: { platform: detectPlatform(), ua: navigator.userAgent },
-      original_filename: file.name || `${id}.jpg`, mime: file.type || "image/jpeg"
-    };
     try {
-      await dbAdd({ photo_id: id, blob: file, meta, status: "queued", created_at: Date.now(), size: file.size });
+      await enqueuePhoto(file, { project, source: "native", gps: gpsObj, mime: file.type || "image/jpeg",
+                                 filename: file.name, captured });
       added++;
     } catch (e) { /* 1枚失敗しても続行 */ }
   }
   await renderQueue();
-  return { added, withGps };
+  return { added, withGps, project };
 }
 
 $("galleryBtn").addEventListener("click", () => $("galleryInput").click());
@@ -656,8 +536,8 @@ $("galleryInput").addEventListener("change", async (e) => {
   e.target.value = "";
   if (!files.length) return;
   toast(`取り込み中…（${files.length}枚）`);
-  const { added, withGps } = await importFiles(files);
-  toast(`取り込み完了：${added}枚（GPSあり ${withGps} / なし ${added - withGps}）`, 4000);
+  const { added, withGps, project } = await importFiles(files);
+  toast(`「${project || "未案件"}」に${added}枚取り込み（GPSあり ${withGps} / なし ${added - withGps}）`, 4500);
 });
 
 /* ============================================================
