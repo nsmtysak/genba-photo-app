@@ -1,0 +1,21 @@
+{
+  "name": "現場写真 自動仕分け",
+  "short_name": "現場写真",
+  "description": "現場写真を案件名・撮影地点ごとに自動仕分けして帰社後にPCへ転送するアプリ",
+  "lang": "ja",
+  "dir": "ltr",
+  "start_url": "pwa-app.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6f8",
+  "theme_color": "#1565c0",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

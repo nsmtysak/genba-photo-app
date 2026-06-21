@@ -1,0 +1,22 @@
+# Python
+pc-server/.venv/
+pc-server/__pycache__/
+**/__pycache__/
+*.pyc
+
+# 機密・実行時生成物（コミットしない）
+# 自己署名証明書と秘密鍵
+pc-server/certs/
+# 端末固有設定（パス・トークン）。初回起動で自動生成
+pc-server/config.json
+pc-server/location_cache.json
+pc-server/.genba_index.json
+# フェーズ4統合テストの一時保存先
+pc-server/_p4_inbox/
+
+# プレビュー用
+.claude/launch.json
+
+# OS
+Thumbs.db
+.DS_Store

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#1565c0"/>
+  <!-- カメラ本体 -->
+  <rect x="96" y="168" width="320" height="216" rx="28" fill="#ffffff"/>
+  <rect x="150" y="140" width="96" height="44" rx="14" fill="#ffffff"/>
+  <!-- レンズ -->
+  <circle cx="256" cy="280" r="66" fill="#1565c0"/>
+  <circle cx="256" cy="280" r="40" fill="#90caf9"/>
+  <!-- フォルダ仕分けを表すチェック -->
+  <circle cx="372" cy="212" r="16" fill="#2e7d32"/>
+</svg>

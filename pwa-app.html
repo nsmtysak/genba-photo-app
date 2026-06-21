@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1565c0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="現場写真">
+<title>現場写真</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --primary: #1565c0;
+    --primary-dark: #0d47a1;
+    --accent: #2e7d32;
+    --danger: #c62828;
+    --warn: #ef6c00;
+    --text: #1a1a1a;
+    --muted: #607d8b;
+    --border: #e0e4e8;
+    --radius: 14px;
+    --shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding-bottom: env(safe-area-inset-bottom);
+    -webkit-text-size-adjust: 100%;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--primary);
+    color: #fff;
+    padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: var(--shadow);
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  .conn { font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #b0bec5; }
+  .dot.ok { background: #69f0ae; }
+  .dot.ng { background: #ff5252; }
+  main { padding: 16px; max-width: 640px; margin: 0 auto; }
+  .card {
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 14px; margin: 0 0 12px; color: var(--muted); letter-spacing: .04em; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input[type=text], input[type=url], input[type=password], select {
+    width: 100%; padding: 12px; font-size: 16px;
+    border: 1.5px solid var(--border); border-radius: 10px; background: #fff;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--primary); }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  button {
+    font-family: inherit; font-size: 16px; font-weight: 600;
+    border: none; border-radius: 10px; padding: 13px 16px;
+    cursor: pointer; transition: transform .05s, opacity .15s; color: #fff;
+  }
+  button:active { transform: scale(.98); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primary { background: var(--primary); }
+  .btn-accent { background: var(--accent); }
+  .btn-ghost { background: #eceff1; color: var(--text); }
+  .btn-danger { background: var(--danger); }
+  .btn-big { width: 100%; padding: 18px; font-size: 18px; }
+  .capture-btn {
+    width: 100%; padding: 0; height: 120px; background: var(--primary);
+    border-radius: var(--radius); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 6px; font-size: 18px;
+  }
+  .capture-btn .ico { font-size: 34px; }
+  .capture-btn:disabled { background: #b0bec5; }
+  .active-project {
+    background: #e3f2fd; border: 1.5px solid var(--primary);
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;
+    font-weight: 600; color: var(--primary-dark);
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .active-project.none { background: #fff3e0; border-color: var(--warn); color: var(--warn); }
+  .pill { font-size: 11px; background: rgba(0,0,0,.08); padding: 2px 8px; border-radius: 999px; color: var(--muted); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .gps-line { font-size: 13px; margin-top: 10px; display: flex; align-items: center; gap: 8px; }
+  .gps-line.ok { color: var(--accent); }
+  .gps-line.ng { color: var(--danger); }
+  .queue-summary { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+  .queue-count { font-size: 32px; font-weight: 800; color: var(--primary); }
+  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px,1fr)); gap: 8px; max-height: 280px; overflow-y: auto; }
+  .thumb { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: #eceff1; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .tag { position: absolute; left: 0; bottom: 0; right: 0; font-size: 9px; color: #fff; background: rgba(0,0,0,.55); padding: 2px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .thumb .st { position: absolute; top: 3px; right: 3px; width: 10px; height: 10px; border-radius: 50%; }
+  .thumb .st.queued { background: #ffca28; }
+  .thumb .st.sending { background: #29b6f6; }
+  .thumb .st.done { background: #66bb6a; }
+  .thumb .st.failed { background: #ef5350; }
+  .thumb .nogps { position: absolute; top: 3px; left: 3px; font-size: 10px; }
+  .progress-wrap { height: 10px; background: #eceff1; border-radius: 999px; overflow: hidden; margin: 10px 0; }
+  .progress-bar { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .log { font-size: 12px; color: var(--muted); max-height: 120px; overflow-y: auto; white-space: pre-wrap; background:#fafafa; border-radius:8px; padding:8px; }
+  .toast {
+    position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px); transform: translateX(-50%);
+    background: #323232; color: #fff; padding: 12px 18px; border-radius: 999px; font-size: 14px;
+    box-shadow: var(--shadow); z-index: 100; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 90vw;
+  }
+  .toast.show { opacity: 1; }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; font-size: 13px; color: var(--primary); }
+  .spacer { height: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📷 現場写真</h1>
+  <div class="conn" id="connStatus"><span class="dot" id="connDot"></span><span id="connText">未接続</span></div>
+</header>
+
+<main>
+  <!-- 案件 -->
+  <section class="card">
+    <h2>案件</h2>
+    <div id="activeProjectBox" class="active-project none">
+      <span id="activeProjectName">案件が未選択です（未案件として保存）</span>
+    </div>
+    <label for="projectInput">案件名を入力 / 選択</label>
+    <div class="row">
+      <input type="text" id="projectInput" list="projectHistory" placeholder="例：○○ビル改修工事" autocomplete="off">
+      <button class="btn-primary" id="setProjectBtn" style="flex:0 0 auto;">設定</button>
+    </div>
+    <datalist id="projectHistory"></datalist>
+    <div class="row" style="margin-top:8px;">
+      <button class="btn-ghost" id="clearProjectBtn">未案件にする</button>
+    </div>
+    <div class="hint">設定した案件名は次の撮影写真に付与されます。履歴から再選択できます。</div>
+  </section>
+
+  <!-- 撮影 -->
+  <section class="card">
+    <h2>撮影</h2>
+    <button class="capture-btn" id="captureBtn">
+      <span class="ico">📸</span>
+      <span>撮影する</span>
+    </button>
+    <!-- ネイティブカメラを開く input -->
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
+    <button class="btn-ghost" id="galleryBtn" style="width:100%;margin-top:10px;">🖼 アルバムから取り込み（未案件）</button>
+    <!-- アルバム（複数選択）。capture無し -->
+    <input type="file" id="galleryInput" accept="image/*" multiple style="display:none">
+    <div class="gps-line" id="gpsLine"><span>📍</span><span id="gpsText">位置情報：撮影時に取得します</span></div>
+    <div class="hint">「撮影する」＝この案件として保存（GPSは撮影時に取得）。<br>「アルバムから取り込み」＝普通のカメラで撮った写真を取り込み、<b>未案件</b>として保存（GPSは写真の情報から読み取り）。いずれもオフラインOK・帰社後にまとめて転送します。</div>
+  </section>
+
+  <!-- 送信キュー -->
+  <section class="card">
+    <h2>送信待ちの写真</h2>
+    <div class="queue-summary">
+      <span class="queue-count" id="queueCount">0</span><span>枚</span>
+      <span class="pill" id="queueBytes"></span>
+    </div>
+    <div class="thumbs" id="thumbs"></div>
+    <div class="spacer"></div>
+    <button class="btn-ghost" id="clearDoneBtn" style="width:100%">転送済みのサムネイルを消去</button>
+  </section>
+
+  <!-- 転送 -->
+  <section class="card">
+    <h2>PCへ転送</h2>
+    <button class="btn-accent btn-big" id="transferBtn">⬆ 転送開始</button>
+    <div class="progress-wrap" id="progressWrap" style="display:none"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="log" id="transferLog" style="display:none"></div>
+
+    <details>
+      <summary>PC接続設定</summary>
+      <div class="spacer"></div>
+      <label for="pcUrl">PCのアドレス（HTTPS）</label>
+      <input type="url" id="pcUrl" placeholder="https://genba-pc.local:8443" autocomplete="off">
+      <div class="spacer"></div>
+      <label for="pcToken">接続トークン（任意）</label>
+      <input type="password" id="pcToken" placeholder="PC側で発行したトークン" autocomplete="off">
+      <div class="spacer"></div>
+      <div class="row">
+        <button class="btn-primary" id="testConnBtn">接続テスト</button>
+        <button class="btn-ghost" id="saveConnBtn">保存</button>
+      </div>
+      <div class="hint">初回のみPCの自己署名証明書をスマホに信頼させる必要があります（セットアップガイド参照）。</div>
+    </details>
+  </section>
+
+  <div class="hint" style="text-align:center;opacity:.7">現場写真 自動仕分けアプリ / フェーズ2 PWA</div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   設定・定数
+============================================================ */
+const SCHEMA_VERSION = 1;
+const DB_NAME = "genba-photo-db";
+const DB_VERSION = 1;
+const STORE = "queue";
+const LS_PROJECT = "gp_active_project";
+const LS_HISTORY = "gp_project_history";
+const LS_PC_URL = "gp_pc_url";
+const LS_PC_TOKEN = "gp_pc_token";
+const GPS_OPTS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
+
+/* ============================================================
+   ユーティリティ
+============================================================ */
+const $ = (id) => document.getElementById(id);
+function uuid() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0; const v = c === "x" ? r : (r & 0x3 | 0x8); return v.toString(16);
+  });
+}
+// タイムゾーンオフセット付きISO8601（例 2026-06-21T09:32:11+09:00）
+function localISO(d = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? "+" : "-";
+  const oh = pad(Math.floor(Math.abs(off) / 60));
+  const om = pad(Math.abs(off) % 60);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${sign}${oh}:${om}`;
+}
+function detectPlatform() {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua)) return "iOS";
+  if (/Android/.test(ua)) return "Android";
+  return "Other";
+}
+function fmtBytes(b) {
+  if (!b) return "";
+  const u = ["B","KB","MB","GB"]; let i = 0; let n = b;
+  while (n >= 1024 && i < u.length-1) { n /= 1024; i++; }
+  return `${n.toFixed(n < 10 && i > 0 ? 1 : 0)}${u[i]}`;
+}
+let toastTimer;
+function toast(msg, ms = 2400) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), ms);
+}
+
+/* ============================================================
+   IndexedDB（送信キュー）
+============================================================ */
+let dbPromise;
+function openDB() {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE)) {
+        const os = db.createObjectStore(STORE, { keyPath: "photo_id" });
+        os.createIndex("status", "status", { unique: false });
+        os.createIndex("created_at", "created_at", { unique: false });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return dbPromise;
+}
+async function tx(mode, fn) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(STORE, mode);
+    const store = t.objectStore(STORE);
+    let result;
+    Promise.resolve(fn(store)).then(r => { result = r; });
+    t.oncomplete = () => resolve(result);
+    t.onerror = () => reject(t.error);
+    t.onabort = () => reject(t.error);
+  });
+}
+const dbAdd = (rec) => tx("readwrite", (s) => s.put(rec));
+const dbDelete = (id) => tx("readwrite", (s) => s.delete(id));
+function dbGetAll() {
+  return tx("readonly", (s) => new Promise((res) => {
+    const r = s.getAll(); r.onsuccess = () => res(r.result || []);
+  }));
+}
+async function dbUpdateStatus(id, status) {
+  return tx("readwrite", (s) => new Promise((res) => {
+    const g = s.get(id);
+    g.onsuccess = () => { const rec = g.result; if (rec) { rec.status = status; s.put(rec); } res(); };
+  }));
+}
+
+/* ============================================================
+   案件名（localStorage）
+============================================================ */
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(LS_HISTORY) || "[]"); } catch { return []; }
+}
+function pushHistory(name) {
+  if (!name) return;
+  let h = getHistory().filter(x => x !== name);
+  h.unshift(name);
+  h = h.slice(0, 30);
+  localStorage.setItem(LS_HISTORY, JSON.stringify(h));
+  renderHistory();
+}
+function renderHistory() {
+  const dl = $("projectHistory");
+  dl.innerHTML = getHistory().map(n => `<option value="${n.replace(/"/g,'&quot;')}">`).join("");
+}
+function getActiveProject() {
+  const v = localStorage.getItem(LS_PROJECT);
+  return v && v.trim() ? v : null;
+}
+function setActiveProject(name) {
+  if (name && name.trim()) {
+    localStorage.setItem(LS_PROJECT, name.trim());
+    pushHistory(name.trim());
+  } else {
+    localStorage.removeItem(LS_PROJECT);
+  }
+  renderActiveProject();
+}
+function renderActiveProject() {
+  const p = getActiveProject();
+  const box = $("activeProjectBox");
+  const name = $("activeProjectName");
+  if (p) {
+    box.classList.remove("none");
+    name.textContent = `撮影中の案件：${p}`;
+  } else {
+    box.classList.add("none");
+    name.textContent = "案件が未選択です（未案件として保存）";
+  }
+}
+
+/* ============================================================
+   GPS取得
+============================================================ */
+function getGPS() {
+  return new Promise((resolve) => {
+    if (!("geolocation" in navigator)) {
+      resolve({ available: false, reason: "no_geolocation" }); return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({
+        available: true,
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy_m: pos.coords.accuracy != null ? Math.round(pos.coords.accuracy * 10) / 10 : null,
+        captured_at: localISO(new Date(pos.timestamp))
+      }),
+      (err) => resolve({ available: false, reason: err.code === 1 ? "denied" : err.code === 3 ? "timeout" : "unavailable" }),
+      GPS_OPTS
+    );
+  });
+}
+
+/* ============================================================
+   撮影フロー
+============================================================ */
+$("captureBtn").addEventListener("click", () => {
+  $("gpsText").textContent = "位置情報を取得中…";
+  $("gpsLine").className = "gps-line";
+  $("cameraInput").click();
+});
+
+$("cameraInput").addEventListener("change", async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = ""; // 同じ写真でも再撮影できるようにリセット
+  if (!file) return;
+
+  // GPSは撮影直後に取得
+  const gps = await getGPS();
+  const gpsLine = $("gpsLine");
+  if (gps.available) {
+    gpsLine.className = "gps-line ok";
+    $("gpsText").textContent = `位置情報を取得（精度±${gps.accuracy_m ?? "?"}m）`;
+  } else {
+    gpsLine.className = "gps-line ng";
+    const r = { denied:"許可されていません", timeout:"タイムアウト", unavailable:"取得不可", no_geolocation:"非対応" }[gps.reason] || "失敗";
+    $("gpsText").textContent = `位置情報：${r}（PCで「未分類」へ保存されます）`;
+  }
+
+  const project = getActiveProject();
+  const id = uuid();
+  const meta = {
+    schema_version: SCHEMA_VERSION,
+    photo_id: id,
+    project_name: project,
+    captured_at: localISO(),
+    source: "app",
+    gps: gps.available
+      ? { lat: gps.lat, lng: gps.lng, accuracy_m: gps.accuracy_m, captured_at: gps.captured_at, available: true }
+      : { lat: null, lng: null, accuracy_m: null, captured_at: null, available: false },
+    device: { platform: detectPlatform(), ua: navigator.userAgent },
+    original_filename: file.name || `${id}.jpg`,
+    mime: file.type || "image/jpeg"
+  };
+
+  const rec = { photo_id: id, blob: file, meta, status: "queued", created_at: Date.now(), size: file.size };
+  try {
+    await dbAdd(rec);
+    toast(`保存しました（${project || "未案件"}）`);
+    await renderQueue();
+  } catch (err) {
+    toast("保存に失敗しました: " + err.message, 4000);
+  }
+});
+
+/* ============================================================
+   アルバムから取り込み（ネイティブ撮影分）
+   写真のEXIFからGPSと撮影日時を読み取り、未案件として保存する。
+============================================================ */
+// JPEGのEXIFを最小パースして {gps:{lat,lng}|null, dto:"YYYY:MM:DD HH:MM:SS"|null} を返す
+function parseExif(buffer) {
+  const dv = new DataView(buffer);
+  if (dv.byteLength < 4 || dv.getUint16(0) !== 0xFFD8) return null; // JPEGでない
+  let offset = 2, tiff = -1;
+  const len = dv.byteLength;
+  while (offset + 4 <= len) {
+    const marker = dv.getUint16(offset);
+    if (marker === 0xFFDA || marker === 0xFFD9) break; // 画像データ/終端
+    const size = dv.getUint16(offset + 2);
+    if (marker === 0xFFE1 && offset + 10 <= len &&
+        dv.getUint32(offset + 4) === 0x45786966 && dv.getUint16(offset + 8) === 0x0000) {
+      tiff = offset + 10; break; // "Exif\0\0" の直後がTIFFヘッダ
+    }
+    if (size < 2) break;
+    offset += 2 + size;
+  }
+  if (tiff < 0) return null;
+  const little = dv.getUint16(tiff) === 0x4949;
+  const u16 = (o) => dv.getUint16(o, little);
+  const u32 = (o) => dv.getUint32(o, little);
+  if (u16(tiff + 2) !== 0x002A) return null;
+
+  const ifd0 = tiff + u32(tiff + 4);
+  let gpsPtr = 0, exifPtr = 0;
+  const n0 = u16(ifd0);
+  for (let i = 0; i < n0; i++) {
+    const e = ifd0 + 2 + i * 12, t = u16(e);
+    if (t === 0x8825) gpsPtr = tiff + u32(e + 8);
+    else if (t === 0x8769) exifPtr = tiff + u32(e + 8);
+  }
+
+  let dto = null;
+  if (exifPtr) {
+    const n = u16(exifPtr);
+    for (let i = 0; i < n; i++) {
+      const e = exifPtr + 2 + i * 12;
+      if (u16(e) === 0x9003) { // DateTimeOriginal
+        const c = u32(e + 4);
+        let p = c <= 4 ? e + 8 : tiff + u32(e + 8), s = "";
+        for (let k = 0; k < c; k++) { const ch = dv.getUint8(p + k); if (ch === 0) break; s += String.fromCharCode(ch); }
+        dto = s;
+      }
+    }
+  }
+
+  let gps = null;
+  if (gpsPtr) {
+    const n = u16(gpsPtr);
+    let latRef, lngRef, lat, lng;
+    const rats = (e, cnt) => {
+      const p = tiff + u32(e + 8), a = [];
+      for (let i = 0; i < cnt; i++) { const num = u32(p + i * 8), den = u32(p + i * 8 + 4); a.push(den ? num / den : 0); }
+      return a;
+    };
+    for (let i = 0; i < n; i++) {
+      const e = gpsPtr + 2 + i * 12, t = u16(e);
+      if (t === 1) latRef = String.fromCharCode(dv.getUint8(e + 8));
+      else if (t === 2) lat = rats(e, 3);
+      else if (t === 3) lngRef = String.fromCharCode(dv.getUint8(e + 8));
+      else if (t === 4) lng = rats(e, 3);
+    }
+    if (lat && lng && latRef && lngRef) {
+      let la = lat[0] + lat[1] / 60 + lat[2] / 3600; if (latRef === "S") la = -la;
+      let lo = lng[0] + lng[1] / 60 + lng[2] / 3600; if (lngRef === "W") lo = -lo;
+      if (isFinite(la) && isFinite(lo) && (la !== 0 || lo !== 0)) gps = { lat: la, lng: lo };
+    }
+  }
+  return { gps, dto };
+}
+
+function parseExifDate(s) {
+  const m = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(s || "");
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// 選択した写真群を未案件(native)として取り込む
+async function importFiles(files) {
+  if (!files.length) return { added: 0, withGps: 0 };
+  let added = 0, withGps = 0;
+  for (const file of files) {
+    let captured = localISO(new Date(file.lastModified || Date.now()));
+    let gpsObj = { lat: null, lng: null, accuracy_m: null, captured_at: null, available: false };
+    try {
+      const ex = parseExif(await file.arrayBuffer());
+      if (ex) {
+        if (ex.dto) { const d = parseExifDate(ex.dto); if (d) captured = localISO(d); }
+        if (ex.gps) { gpsObj = { lat: ex.gps.lat, lng: ex.gps.lng, accuracy_m: null, captured_at: captured, available: true }; withGps++; }
+      }
+    } catch (e) { /* 解析失敗→GPSなし扱い */ }
+    const id = uuid();
+    const meta = {
+      schema_version: SCHEMA_VERSION, photo_id: id, project_name: null, captured_at: captured,
+      source: "native", gps: gpsObj, device: { platform: detectPlatform(), ua: navigator.userAgent },
+      original_filename: file.name || `${id}.jpg`, mime: file.type || "image/jpeg"
+    };
+    try {
+      await dbAdd({ photo_id: id, blob: file, meta, status: "queued", created_at: Date.now(), size: file.size });
+      added++;
+    } catch (e) { /* 1枚失敗しても続行 */ }
+  }
+  await renderQueue();
+  return { added, withGps };
+}
+
+$("galleryBtn").addEventListener("click", () => $("galleryInput").click());
+$("galleryInput").addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files || []);
+  e.target.value = "";
+  if (!files.length) return;
+  toast(`取り込み中…（${files.length}枚）`);
+  const { added, withGps } = await importFiles(files);
+  toast(`取り込み完了：${added}枚（GPSあり ${withGps} / なし ${added - withGps}）`, 4000);
+});
+
+/* ============================================================
+   キュー表示
+============================================================ */
+let thumbUrls = [];
+async function renderQueue() {
+  const all = (await dbGetAll()).sort((a,b) => a.created_at - b.created_at);
+  $("queueCount").textContent = all.filter(r => r.status !== "done").length;
+  const totalBytes = all.filter(r => r.status !== "done").reduce((s,r) => s + (r.size||0), 0);
+  $("queueBytes").textContent = totalBytes ? fmtBytes(totalBytes) : "";
+
+  // 古いObjectURLを解放
+  thumbUrls.forEach(u => URL.revokeObjectURL(u)); thumbUrls = [];
+  const wrap = $("thumbs"); wrap.innerHTML = "";
+  for (const r of all) {
+    const url = URL.createObjectURL(r.blob); thumbUrls.push(url);
+    const div = document.createElement("div");
+    div.className = "thumb";
+    const tag = r.meta.project_name || "未案件";
+    const nogps = r.meta.gps && r.meta.gps.available ? "" : `<span class="nogps" title="GPSなし">⚠️</span>`;
+    div.innerHTML = `<img src="${url}" loading="lazy"><span class="st ${r.status}"></span>${nogps}<span class="tag">${tag}</span>`;
+    wrap.appendChild(div);
+  }
+}
+
+$("clearDoneBtn").addEventListener("click", async () => {
+  const all = await dbGetAll();
+  const done = all.filter(r => r.status === "done");
+  for (const r of done) await dbDelete(r.photo_id);
+  await renderQueue();
+  toast(`${done.length}件のサムネイルを消去しました`);
+});
+
+/* ============================================================
+   PC接続設定
+============================================================ */
+function getPC() {
+  return {
+    url: (localStorage.getItem(LS_PC_URL) || "").replace(/\/+$/,""),
+    token: localStorage.getItem(LS_PC_TOKEN) || ""
+  };
+}
+function loadConnUI() {
+  $("pcUrl").value = localStorage.getItem(LS_PC_URL) || "";
+  $("pcToken").value = localStorage.getItem(LS_PC_TOKEN) || "";
+}
+$("saveConnBtn").addEventListener("click", () => {
+  localStorage.setItem(LS_PC_URL, $("pcUrl").value.trim());
+  localStorage.setItem(LS_PC_TOKEN, $("pcToken").value.trim());
+  toast("接続設定を保存しました");
+  ping();
+});
+function authHeaders() {
+  const { token } = getPC();
+  return token ? { "Authorization": "Bearer " + token } : {};
+}
+function setConn(state, text) {
+  const dot = $("connDot");
+  dot.className = "dot" + (state === "ok" ? " ok" : state === "ng" ? " ng" : "");
+  $("connText").textContent = text;
+}
+async function ping() {
+  const { url } = getPC();
+  if (!url) { setConn("", "未設定"); return false; }
+  setConn("", "確認中…");
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 6000);
+    const res = await fetch(url + "/api/ping", { headers: authHeaders(), signal: ctrl.signal });
+    clearTimeout(to);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json().catch(() => ({}));
+    setConn("ok", data.version ? `接続OK (v${data.version})` : "接続OK");
+    return true;
+  } catch (err) {
+    setConn("ng", "未接続");
+    return false;
+  }
+}
+$("testConnBtn").addEventListener("click", async () => {
+  localStorage.setItem(LS_PC_URL, $("pcUrl").value.trim());
+  localStorage.setItem(LS_PC_TOKEN, $("pcToken").value.trim());
+  const ok = await ping();
+  toast(ok ? "接続に成功しました ✅" : "接続できません。アドレス・証明書・同一Wi-Fiを確認してください", 4000);
+});
+
+/* ============================================================
+   転送（1アクション）
+============================================================ */
+let transferring = false;
+function logLine(msg) {
+  const el = $("transferLog");
+  el.style.display = "block";
+  el.textContent += msg + "\n";
+  el.scrollTop = el.scrollHeight;
+}
+async function sendOne(rec, url) {
+  const fd = new FormData();
+  const ext = (rec.meta.mime.split("/")[1] || "jpg").replace("jpeg","jpg");
+  fd.append("file", rec.blob, `${rec.photo_id}.${ext}`);
+  fd.append("meta", JSON.stringify(rec.meta));
+  const res = await fetch(url + "/api/photos", { method: "POST", headers: authHeaders(), body: fd });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json().catch(() => ({}));
+}
+$("transferBtn").addEventListener("click", async () => {
+  if (transferring) return;
+  const { url } = getPC();
+  if (!url) { toast("先にPC接続設定を行ってください", 3500); $("pcUrl").focus(); return; }
+
+  transferring = true;
+  $("transferBtn").disabled = true;
+  $("transferBtn").textContent = "転送中…";
+  $("transferLog").textContent = "";
+  $("progressWrap").style.display = "block";
+  $("progressBar").style.width = "0%";
+
+  // 接続確認
+  logLine("PCへ接続を確認中…");
+  if (!(await ping())) {
+    logLine("✗ PCに接続できません。中止しました。");
+    toast("PCに接続できません", 3500);
+    resetTransferBtn();
+    return;
+  }
+
+  const all = (await dbGetAll()).filter(r => r.status !== "done").sort((a,b)=>a.created_at-b.created_at);
+  if (all.length === 0) { logLine("送信待ちの写真はありません。"); toast("送信待ちの写真はありません"); resetTransferBtn(); return; }
+
+  logLine(`${all.length}枚を転送します。`);
+  let ok = 0, ng = 0;
+  for (let i = 0; i < all.length; i++) {
+    const rec = all[i];
+    await dbUpdateStatus(rec.photo_id, "sending");
+    await renderQueue();
+    try {
+      const r = await sendOne(rec, url);
+      await dbUpdateStatus(rec.photo_id, "done");
+      ok++;
+      const place = r.company || r.place || "";
+      logLine(`✓ ${i+1}/${all.length} ${rec.meta.project_name||"未案件"}${place?(" / "+place):""}${r.dedup?"（重複スキップ）":""}`);
+    } catch (err) {
+      await dbUpdateStatus(rec.photo_id, "failed");
+      ng++;
+      logLine(`✗ ${i+1}/${all.length} 失敗: ${err.message}（キューに保持）`);
+    }
+    $("progressBar").style.width = `${Math.round((i+1)/all.length*100)}%`;
+    await renderQueue();
+  }
+  logLine(`完了：成功 ${ok} 件 / 失敗 ${ng} 件`);
+  toast(ng === 0 ? `転送完了 ✅ ${ok}件` : `転送終了：成功${ok} / 失敗${ng}`, 4000);
+  resetTransferBtn();
+});
+function resetTransferBtn() {
+  transferring = false;
+  $("transferBtn").disabled = false;
+  $("transferBtn").textContent = "⬆ 転送開始";
+}
+
+/* ============================================================
+   案件UIイベント
+============================================================ */
+$("setProjectBtn").addEventListener("click", () => {
+  const v = $("projectInput").value.trim();
+  if (!v) { toast("案件名を入力してください"); return; }
+  setActiveProject(v);
+  $("projectInput").value = "";
+  toast(`案件を設定：${v}`);
+});
+$("projectInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("setProjectBtn").click(); });
+$("clearProjectBtn").addEventListener("click", () => {
+  setActiveProject(null);
+  toast("未案件モードにしました");
+});
+
+/* ============================================================
+   起動
+============================================================ */
+async function init() {
+  // 送信前のキュー（IndexedDB）がOSに削除されないよう永続化を要求
+  // （iOSのストレージ自動消去対策。未転送写真の消失を防ぐ）
+  if (navigator.storage && navigator.storage.persist) {
+    try { await navigator.storage.persist(); } catch (e) { /* 非対応でも継続 */ }
+  }
+  renderHistory();
+  renderActiveProject();
+  loadConnUI();
+  await renderQueue();
+  ping();
+  if ("serviceWorker" in navigator) {
+    try { await navigator.serviceWorker.register("service-worker.js"); } catch (e) { /* オフライン未対応でも動作可 */ }
+  }
+}
+window.addEventListener("online", ping);
+window.addEventListener("offline", () => setConn("ng", "オフライン"));
+init();
+</script>
+</body>
+</html>
